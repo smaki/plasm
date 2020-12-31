@@ -19,14 +19,15 @@ services:
       - "traefik.http.routers.${PROJECT_NAME}_nginx.entrypoints=websecure"
 
   plasm:
-    build:
-      context: ./plasm
-      dockerfile: Dockerfile
-      args:
-        PLASM_GROUP: $PLASM_GROUP
-        PLASM_USER: $PLASM_USER
-        PLASM_VER: $PLASM_VER
-        NIGHTLY_VER: $NIGHTLY_VER
+#    Build from ubuntu 18.04 lts + rustup + make from binaries plasm-node
+#    build:
+#      context: ./plasm
+#      dockerfile: Dockerfile
+#      args:
+#        PLASM_GROUP: $PLASM_GROUP
+#        PLASM_USER: $PLASM_USER
+#        PLASM_VER: $PLASM_VER
+#        NIGHTLY_VER: $NIGHTLY_VER
     image: "smakisog/plasm:${PLASM_VER}"
     container_name: "${PROJECT_NAME}_node"
     restart: unless-stopped
