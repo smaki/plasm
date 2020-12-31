@@ -10,7 +10,7 @@ services:
       NGINX_SERVER_NAME: 127.0.0.1
     ports:
 #      - "80:80"
-      - "443:443"
+#      - "443:443"
     networks:
       - plams-network
     labels:
