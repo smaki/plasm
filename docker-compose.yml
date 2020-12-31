@@ -1,0 +1,63 @@
+version: "3.7"
+
+services:
+  nginx:
+    image: wodby/nginx:$NGINX_TAG
+    container_name: "${PROJECT_NAME}_nginx"
+    restart: unless-stopped
+    tty: true
+    environment:
+      NGINX_SERVER_NAME: 127.0.0.1
+    ports:
+#      - "80:80"
+      - "443:443"
+    networks:
+      - plams-network
+    labels:
+      - "traefik.http.routers.${PROJECT_NAME}_nginx.rule=Host(`${PROJECT_BASE_URL}`)"
+      - "traefik.http.routers.${PROJECT_NAME}_nginx.tls.certresolver=le"
+      - "traefik.http.routers.${PROJECT_NAME}_nginx.entrypoints=websecure"
+
+  plasm:
+    build:
+      context: ./plasm
+      dockerfile: Dockerfile
+      args:
+        PLASM_GROUP: $PLASM_GROUP
+        PLASM_USER: $PLASM_USER
+        PLASM_VER: $PLASM_VER
+        NIGHTLY_VER: $NIGHTLY_VER
+    image: "smakisog/plasm:${PLASM_VER}"
+    container_name: "${PROJECT_NAME}_node"
+    restart: unless-stopped
+    tty: true
+    ports:
+      - 9615:9615
+      - 9944:9944
+    networks:
+      - plams-network
+    volumes:
+      - $HOME/plasm:/home/plasmnode
+    labels:
+      - "traefik.http.routers.${PROJECT_NAME}_node.rule=Host(`${PROJECT_BASE_URL}`)"
+    entrypoint: ["plasm-node", "--base-path", "/home/plasmnode/db", "--validator", "--name", "PlasmUkraine", "--rpc-cors", "all", "--in-peers", "50", "--out-peers", "50"]
+
+  traefik:
+    image: "traefik:v2.0.0"
+    command:
+      # add these lines
+      - --entrypoints.websecure.address=:443
+      - --certificatesresolvers.le.acme.email=splasmtest@email.com
+      - --certificatesresolvers.le.acme.storage=/acme.json
+      - --certificatesresolvers.le.acme.tlschallenge=true
+    ports:
+      - 8000:80
+      - "443:443"
+    networks:
+      - plams-network
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+networks:
+  plams-network:
+    driver: bridge
