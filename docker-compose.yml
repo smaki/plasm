@@ -8,9 +8,12 @@ services:
     tty: true
     environment:
       NGINX_SERVER_NAME: 127.0.0.1
-#    ports:
+      NGINX_SERVER_EXTRA_CONF_FILEPATH: /var/www/html/nginx-ssl.conf
+    #    ports:
 #      - "80:80"
 #      - "443:443"
+    volumes:
+      - ./nginx/:/var/www/html
     networks:
       - plams-network
     labels:
@@ -46,13 +49,14 @@ services:
   traefik:
     image: "traefik:v2.0.0"
     command:
-      # add these lines
+      - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
+      - --providers.docker=true
       - --certificatesresolvers.le.acme.email=splasmtest@email.com
       - --certificatesresolvers.le.acme.storage=/acme.json
       - --certificatesresolvers.le.acme.tlschallenge=true
     ports:
-      - 8000:80
+      - 80:80
       - "443:443"
     networks:
       - plams-network
