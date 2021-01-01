@@ -1,25 +1,27 @@
 version: "3.7"
 
 services:
-#  nginx:
-#    image: wodby/nginx:$NGINX_TAG
-#    container_name: "${PROJECT_NAME}_nginx"
-#    restart: unless-stopped
-#    tty: true
-#    environment:
-#      NGINX_SERVER_NAME: 127.0.0.1
-#      NGINX_SERVER_EXTRA_CONF_FILEPATH: /var/www/html/nginx-ssl.conf
-#    #    ports:
-##      - "80:80"
-##      - "443:443"
-#    volumes:
-#      - ./nginx/:/var/www/html
-#    networks:
-#      - plams-network
-#    labels:
-#      - "traefik.http.routers.${PROJECT_NAME}_nginx.rule=Host(`${PROJECT_BASE_URL}`)"
-#      - "traefik.http.routers.${PROJECT_NAME}_nginx.tls.certresolver=le"
-#      - "traefik.http.routers.${PROJECT_NAME}_nginx.entrypoints=websecure"
+  nginx:
+    image: wodby/nginx:$NGINX_TAG
+    container_name: "${PROJECT_NAME}_nginx"
+    restart: unless-stopped
+    tty: true
+    environment:
+      NGINX_SERVER_NAME: PROJECT_BASE_URL
+      NGINX_SERVER_EXTRA_CONF_FILEPATH: /var/www/html/nginx-ssl.conf
+    #    ports:
+#      - "80:80"
+#      - "443:443"
+    volumes:
+      - ./nginx/:/var/www/html
+      - ./nginx/nginx-selfsigned.crt:/etc/ssl/certs/nginx-selfsigned.crt
+      - ./nginx/nginx-selfsigned.key:/etc/ssl/private/nginx-selfsigned.key
+    networks:
+      - plams-network
+    labels:
+      - "traefik.http.routers.${PROJECT_NAME}_nginx.rule=Host(`${PROJECT_BASE_URL}`)"
+      - "traefik.http.routers.${PROJECT_NAME}_nginx.tls.certresolver=le"
+      - "traefik.http.routers.${PROJECT_NAME}_nginx.entrypoints=websecure"
 
   plasm:
 #    Build from ubuntu 18.04 lts + rustup + make from binaries plasm-node
@@ -63,8 +65,8 @@ services:
       - plams-network
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./traefik.toml:/traefik.toml
-      - ./acme.json:/acme.json
+#      - ./traefik.toml:/traefik.toml
+      - ./acme.json:/acme.json:ro
 
 networks:
   plams-network:
