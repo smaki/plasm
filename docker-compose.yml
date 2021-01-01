@@ -14,14 +14,15 @@ services:
 #      - "443:443"
     volumes:
       - ./nginx/:/var/www/html
-      - ./nginx/nginx-selfsigned.crt:/etc/ssl/certs/nginx-selfsigned.crt
-      - ./nginx/nginx-selfsigned.key:/etc/ssl/private/nginx-selfsigned.key
+      - ./nginx/cert/nginx-selfsigned.crt:/etc/ssl/certs/nginx-selfsigned.crt
+      - ./nginx/cert/nginx-selfsigned.key:/etc/ssl/private/nginx-selfsigned.key
+      - ./nginx/cert/dhparam.pem:/etc/ssl/certs/dhparam.pem
     networks:
       - plams-network
-    labels:
-      - "traefik.http.routers.${PROJECT_NAME}_nginx.rule=Host(`${PROJECT_BASE_URL}`)"
-      - "traefik.http.routers.${PROJECT_NAME}_nginx.tls.certresolver=le"
-      - "traefik.http.routers.${PROJECT_NAME}_nginx.entrypoints=websecure"
+#    labels:
+#      - "traefik.http.routers.${PROJECT_NAME}_nginx.rule=Host(`${PROJECT_BASE_URL}`)"
+#      - "traefik.http.routers.${PROJECT_NAME}_nginx.tls.certresolver=le"
+#      - "traefik.http.routers.${PROJECT_NAME}_nginx.entrypoints=websecure"
 
   plasm:
 #    Build from ubuntu 18.04 lts + rustup + make from binaries plasm-node
@@ -45,28 +46,28 @@ services:
       - plams-network
     volumes:
       - $HOME/plasm:/home/plasmnode
-    labels:
-      - "traefik.http.routers.${PROJECT_NAME}_node.rule=Host(`${PROJECT_BASE_URL}`)"
+#    labels:
+#      - "traefik.http.routers.${PROJECT_NAME}_node.rule=Host(`${PROJECT_BASE_URL}`)"
     entrypoint: ["plasm-node", "--base-path", "/home/plasmnode/db", "--validator", "--name", "PlasmUkraine", "--rpc-cors", "all", "--in-peers", "50", "--out-peers", "50"]
 
-  traefik:
-    image: "traefik:v2.0.0"
-    command:
-      - --entrypoints.web.address=:80
-      - --entrypoints.websecure.address=:443
-      - --providers.docker=true
-      - --certificatesresolvers.le.acme.email=splasmtest@email.com
-      - --certificatesresolvers.le.acme.storage=/acme.json
-      - --certificatesresolvers.le.acme.tlschallenge=true
-    ports:
-      - 80:80
-      - "443:443"
-    networks:
-      - plams-network
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-#      - ./traefik.toml:/traefik.toml
-      - ./acme.json:/acme.json:ro
+#  traefik:
+#    image: "traefik:v2.0.0"
+#    command:
+#      - --entrypoints.web.address=:80
+#      - --entrypoints.websecure.address=:443
+#      - --providers.docker=true
+#      - --certificatesresolvers.le.acme.email=splasmtest@email.com
+#      - --certificatesresolvers.le.acme.storage=/acme.json
+#      - --certificatesresolvers.le.acme.tlschallenge=true
+#    ports:
+#      - 80:80
+#      - "443:443"
+#    networks:
+#      - plams-network
+#    volumes:
+#      - /var/run/docker.sock:/var/run/docker.sock
+##      - ./traefik.toml:/traefik.toml
+#      - ./acme.json:/acme.json:ro
 
 networks:
   plams-network:
