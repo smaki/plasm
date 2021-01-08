@@ -3,3 +3,6 @@
 
 # Nginx cert
 nginx/cert/
+
+.idea
+__nginx
