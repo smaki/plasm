@@ -1,54 +1,120 @@
 version: "3.7"
 
 services:
-  nginx:
-    image: wodby/nginx:$NGINX_TAG
-    container_name: "${PROJECT_NAME}_nginx"
-    restart: unless-stopped
-    tty: true
+#  nginx:
+#    image: wodby/nginx:$NGINX_TAG
+#    container_name: "${PROJECT_NAME}_nginx"
+#    restart: unless-stopped
+#    tty: true
+#    environment:
+#      NGINX_SERVER_NAME: $PROJECT_BASE_URL
+#      NGINX_SERVER_EXTRA_CONF_FILEPATH: /var/www/html/nginx-ssl.conf
+#    #    ports:
+##      - "80:80"
+##      - "443:443"
+#    volumes:
+#      - ./nginx/:/var/www/html
+#      - ./nginx/cert/nginx-selfsigned.crt:/etc/ssl/certs/nginx-selfsigned.crt
+#      - ./nginx/cert/nginx-selfsigned.key:/etc/ssl/private/nginx-selfsigned.key
+#      - ./nginx/cert/dhparam.pem:/etc/ssl/certs/dhparam.pem
+#    networks:
+#      - plams-network
+##    labels:
+##      - "traefik.http.routers.${PROJECT_NAME}_nginx.rule=Host(`${PROJECT_BASE_URL}`)"
+##      - "traefik.http.routers.${PROJECT_NAME}_nginx.tls.certresolver=le"
+##      - "traefik.http.routers.${PROJECT_NAME}_nginx.entrypoints=websecure"
+
+  nginx-proxy:
+    image: jwilder/nginx-proxy:alpine
+    container_name: "${PROJECT_NAME}_nginx_proxy"
     environment:
-      NGINX_SERVER_NAME: PROJECT_BASE_URL
-      NGINX_SERVER_EXTRA_CONF_FILEPATH: /var/www/html/nginx-ssl.conf
-    #    ports:
-#      - "80:80"
-#      - "443:443"
-    volumes:
-      - ./nginx/:/var/www/html
-      - ./nginx/cert/nginx-selfsigned.crt:/etc/ssl/certs/nginx-selfsigned.crt
-      - ./nginx/cert/nginx-selfsigned.key:/etc/ssl/private/nginx-selfsigned.key
-      - ./nginx/cert/dhparam.pem:/etc/ssl/certs/dhparam.pem
+      DEFAULT_HOST: $PROJECT_BASE_URL
     networks:
       - plams-network
-#    labels:
-#      - "traefik.http.routers.${PROJECT_NAME}_nginx.rule=Host(`${PROJECT_BASE_URL}`)"
-#      - "traefik.http.routers.${PROJECT_NAME}_nginx.tls.certresolver=le"
-#      - "traefik.http.routers.${PROJECT_NAME}_nginx.entrypoints=websecure"
+#    expose:
+#      - "9944"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "9944:9944"
+#      - 9615:9615
+#      - 9933:9933
+#      - 30333:30333
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - /etc/nginx/vhost.d
+      - ./nginx/certs/:/etc/nginx/certs:rw
+      - /usr/share/nginx/html
+#      - ./nginx/proxy.conf:/etc/nginx/proxy.conf
+    labels:
+      - "com.github.jrcs.letsencrypt_nginx_proxy_companion.nginx_proxy=true"
+
+#  nginx-proxy-letsencrypt:
+#    image: jrcs/letsencrypt-nginx-proxy-companion
+#    container_name: "${PROJECT_NAME}_nginx_proxy_letsencrypt"
+#    networks:
+#      - plams-network
+#    environment:
+#      DEFAULT_EMAIL: $LETSENCRYPT_EMAIL
+#    volumes:
+#      - /var/run/docker.sock:/var/run/docker.sock:ro
+#      - /etc/acme.sh
+#    volumes_from:
+#      - nginx-proxy
+
+  openssl:
+    image: pgarrett/openssl-alpine
+    container_name: "${PROJECT_NAME}_openssl"
+    networks:
+      - plams-network
+    environment:
+      LETSENCRYPT_EMAIL: $LETSENCRYPT_EMAIL
+      LETSENCRYPT_HOST: $PROJECT_BASE_URL
+      DEFAULT_EMAIL: $LETSENCRYPT_EMAIL
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./nginx/certs:/etc/ssl/certs
+    volumes_from:
+      - nginx-proxy
+
+
+
 
   plasm:
 #    Build from ubuntu 18.04 lts + rustup + make from binaries plasm-node
-#    build:
-#      context: ./plasm
-#      dockerfile: Dockerfile
-#      args:
-#        PLASM_GROUP: $PLASM_GROUP
-#        PLASM_USER: $PLASM_USER
-#        PLASM_VER: $PLASM_VER
-#        NIGHTLY_VER: $NIGHTLY_VER
+    build:
+      context: ./plasm
+      dockerfile: Dockerfile
+      args:
+        PLASM_GROUP: $PLASM_GROUP
+        PLASM_USER: $PLASM_USER
+        PLASM_VER: $PLASM_VER
+        NIGHTLY_VER: $NIGHTLY_VER
     image: "smakisog/plasm:${PLASM_VER}"
     container_name: "${PROJECT_NAME}_node"
     restart: unless-stopped
     tty: true
-    ports:
-      - 9615:9615
-      - 9944:9944
-      - 9933:9933
+    expose:
+      - "9944"
+#      - "443"
+#    ports:
+#      - 9615:9615
+#      - "9944:9944"
+#      - 9933:9933
     networks:
       - plams-network
+    environment:
+      VIRTUAL_HOST: $PROJECT_BASE_URL
+      VIRTUAL_PORT: 9944
+      LETSENCRYPT_HOST: 'plasmukraine.northeurope.cloudapp.azure.com'
+      LETSENCRYPT_EMAIL: $LETSENCRYPT_EMAIL
     volumes:
-      - $HOME/plasm:/home/plasmnode
+      - $NODE_DB_PATH:/home/plasmnode
+    volumes_from:
+      - nginx-proxy
 #    labels:
 #      - "traefik.http.routers.${PROJECT_NAME}_node.rule=Host(`${PROJECT_BASE_URL}`)"
-    entrypoint: ["plasm-node", "--base-path", "/home/plasmnode/db", "--validator", "--name", "PlasmUkraine", "--rpc-cors", "all", "--in-peers", "50", "--out-peers", "50"]
+    entrypoint: ["plasm-node", "--base-path", "/home/plasmnode/db", "--validator", "--name", $NODE_NAME, "--rpc-cors", "all", "--in-peers", "50", "--out-peers", "50"]
 
 #  traefik:
 #    image: "traefik:v2.0.0"
@@ -56,19 +122,21 @@ services:
 #      - --entrypoints.web.address=:80
 #      - --entrypoints.websecure.address=:443
 #      - --providers.docker=true
-#      - --certificatesresolvers.le.acme.email=splasmtest@email.com
-#      - --certificatesresolvers.le.acme.storage=/acme.json
-#      - --certificatesresolvers.le.acme.tlschallenge=true
+##      - --certificatesresolvers.le.acme.email=splasmtest@email.com
+##      - --certificatesresolvers.le.acme.storage=/acme.json
+##      - --certificatesresolvers.le.acme.tlschallenge=true
 #    ports:
-#      - 80:80
-#      - "443:443"
+##      - 80:80
+##      - "443:443"
+#      - 9944:9944
 #    networks:
 #      - plams-network
 #    volumes:
 #      - /var/run/docker.sock:/var/run/docker.sock
-##      - ./traefik.toml:/traefik.toml
-#      - ./acme.json:/acme.json:ro
+###      - ./traefik.toml:/traefik.toml
+###      - ./acme.json:/acme.json:ro
 
 networks:
   plams-network:
-    driver: bridge
+    external:
+      name: plams-network

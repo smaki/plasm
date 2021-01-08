@@ -57,8 +57,9 @@ RUN rm -rf /tmp/*;
 
 USER plasmnode
 
+EXPOSE 9944
+
 WORKDIR $APP_ROOT
-EXPOSE 80
 
 #RUN plasm-node --base-path $APP_ROOT/db
 ENTRYPOINT bash
