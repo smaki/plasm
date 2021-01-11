@@ -15,14 +15,17 @@ services:
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
       - /etc/nginx/vhost.d
-      - ./nginx/certs/:/etc/nginx/certs:rw
+      - ./nginx/certs/:/etc/ssl/certs:rw
       - /usr/share/nginx/html
 #      - ./nginx/proxy.conf:/etc/nginx/proxy.conf
     labels:
       - "com.github.jrcs.letsencrypt_nginx_proxy_companion.nginx_proxy=true"
 
   openssl:
-    image: pgarrett/openssl-alpine
+    build:
+      context: ./dockerfiles/openssl
+      dockerfile: Dockerfile
+#    image: pgarrett/openssl-alpine
     container_name: "${PROJECT_NAME}_openssl"
     networks:
       - plams-network
@@ -38,17 +41,16 @@ services:
       PUBLIC_CN: $PUBLIC_CN
       ISSUER_NAME: $ISSUER_NAME
       PUBLIC_NAME: $PUBLIC_NAME
-      CERT_DIR: ./nginx/certs
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./nginx/certs:/etc/ssl/certs
+      - ./nginx/certs:/etc/ssl/certs:rw
     volumes_from:
       - nginx-proxy
 
   plasm:
 #    Build from ubuntu 18.04 lts + rustup + make from binaries plasm-node
     build:
-      context: ./plasm
+      context: ./dockerfiles/plasmnode
       dockerfile: Dockerfile
       args:
         PLASM_GROUP: $PLASM_GROUP
