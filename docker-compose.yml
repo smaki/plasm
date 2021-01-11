@@ -38,6 +38,7 @@ services:
       PUBLIC_CN: $PUBLIC_CN
       ISSUER_NAME: $ISSUER_NAME
       PUBLIC_NAME: $PUBLIC_NAME
+      CERT_DIR: ./nginx/certs
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./nginx/certs:/etc/ssl/certs
