@@ -8,12 +8,10 @@ services:
       DEFAULT_HOST: $PROJECT_BASE_URL
     networks:
       - plams-network
-#    expose:
-#      - "9944"
     ports:
       - "80:80"
       - "443:443"
-      - "9944:9944"
+#      - "9944:9944"
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
       - /etc/nginx/vhost.d
@@ -32,14 +30,19 @@ services:
       LETSENCRYPT_EMAIL: $LETSENCRYPT_EMAIL
       LETSENCRYPT_HOST: $PROJECT_BASE_URL
       DEFAULT_EMAIL: $LETSENCRYPT_EMAIL
+      COUNTY: $COUNTY
+      STATE: $STATE
+      LOCATION: $LOCATION
+      ORGANISATION: $ORGANISATION
+      ISSUER_CN: $ISSUER_CN
+      PUBLIC_CN: $PUBLIC_CN
+      ISSUER_NAME: $ISSUER_NAME
+      PUBLIC_NAME: $PUBLIC_NAME
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./nginx/certs:/etc/ssl/certs
     volumes_from:
       - nginx-proxy
-
-
-
 
   plasm:
 #    Build from ubuntu 18.04 lts + rustup + make from binaries plasm-node
